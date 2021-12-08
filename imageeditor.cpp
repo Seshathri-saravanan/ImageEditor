@@ -2,11 +2,26 @@
 #include "ui_imageeditor.h"
 #include <QImage>
 #include <QFileDialog>
+#include <QMouseEvent>
+#include <QPainter>
+#include <QGraphicsScene>
+#include <omp.h>
+#include <QGraphicsView>
+#include <QGraphicsPixmapItem>
+#include "clickablelabel.h"
+#include <chrono>
 ImageEditor::ImageEditor(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::ImageEditor)
 {
+    QTextStream cout(stdout);
+    //omp_set_num_threads(6);
+    //#pragma omp parallel
+    //{
+    //    cout<<"openmp parallel "<<omp_get_thread_num()<<"\n";
+    //}
     ui->setupUi(this);
+    ui->imageLabel->setText("initialized");
     brightness =0;
     connect(ui->openImageButton,&QPushButton::clicked,this,&ImageEditor::openImage);
     connect(ui->blurSlider,&QSlider::valueChanged,this,&ImageEditor::blurImage);
@@ -14,6 +29,9 @@ ImageEditor::ImageEditor(QWidget *parent)
     connect(ui->contrastSlider,&QSlider::valueChanged,this,&ImageEditor::changeContrast);
     connect(ui->sharpenRadioButton,&QRadioButton::clicked,this,&ImageEditor::sharpenImage);
     connect(ui->enhanceRadioButton,&QRadioButton::clicked,this,&ImageEditor::enhanceImage);
+    connect(ui->imageLabel, &ClickableLabel::clicked, this, &ImageEditor::startSelect);
+    connect(ui->imageLabel, &ClickableLabel::moved, this, &ImageEditor::moveSelect);
+    connect(ui->imageLabel, &ClickableLabel::released, this, &ImageEditor::stopSelect);
 }
 
 ImageEditor::~ImageEditor()
@@ -21,12 +39,40 @@ ImageEditor::~ImageEditor()
     delete ui;
 }
 
+void ImageEditor::startSelect(QMouseEvent* event){
+        origin = event->pos();
+        if (!rubberBand)
+            rubberBand = new QRubberBand(QRubberBand::Rectangle, ui->imageLabel);
+        rubberBand->setGeometry(QRect(origin, QSize()));
+        rubberBand->show();
+}
+void ImageEditor::moveSelect(QMouseEvent* event){
+   rubberBand->setGeometry(QRect(origin, event->pos()).normalized());
+}
+void ImageEditor::stopSelect(QMouseEvent* event){
+    QTextStream cout(stdout);
+    QRect rect = rubberBand->geometry();
+    QPoint pos = rect.topLeft();
+    QPoint pos2 = ui->imageLabel->pos();
+    cout<<"rec Details:";
+    cout<<pos.x()<<" "<<pos.y()<<"\n";
+    cout<<"img Details:";
+    cout<<pos2.x()<<" "<<pos2.y()<<"\n";
+
+   //rubberBand->hide();
+}
+
 void ImageEditor::openImage(){
     QString fileName = QFileDialog::getOpenFileName(this,
         tr("Open Image"), "/", tr("Image Files (*.png *.jpg *.jpeg *.bmp)"));
     img.load(fileName);
-    ui->imageLabel->setPixmap(QPixmap::fromImage(img));
-    ui->imageLabel->setMargin(10);
+    QPixmap pmap = QPixmap::fromImage(img);
+    int w = ui->imageLabel->width();
+    int h = ui->imageLabel->height();
+
+    // set a scaled pixmap to a w x h window keeping its aspect ratio
+    ui->imageLabel->setPixmap(pmap.scaled(w,h,Qt::KeepAspectRatio));
+    ui->imageLabel->setMargin(0);
     //ui->imageLabel->setSi
 }
 
@@ -137,19 +183,31 @@ void ImageEditor::changeContrast(){
     int height = img.height();
     float contrast = (float)ui->contrastSlider->value()/100;
     QImage newImage(img.width(),img.height(),img.format());
-    for(int y=0;y<height;y++){
-        for(int x=0;x<width;x++){
-            QColor oldVal(img.pixel(x,y));
-            int red =oldVal.red()*contrast;
-            int blue =oldVal.blue()*contrast;
-            int green =oldVal.green()*contrast;
-            boundPixelValue(red);
-            boundPixelValue(blue);
-            boundPixelValue(green);
-            QColor newval(red,green,blue);
-            newImage.setPixel(x,y,newval.rgb());
+    auto start = std::chrono::high_resolution_clock::now();
+    //omp_set_num_threads(10);
+    #pragma omp parallel
+    {
+        #pragma omp for nowait
+        {
+            for(int y=0;y<height;y++){
+                for(int x=0;x<width;x++){
+                    QColor oldVal(img.pixel(x,y));
+                    int red =oldVal.red()*contrast;
+                    int blue =oldVal.blue()*contrast;
+                    int green =oldVal.green()*contrast;
+                    boundPixelValue(red);
+                    boundPixelValue(blue);
+                    boundPixelValue(green);
+                    QColor newval(red,green,blue);
+                    newImage.setPixel(x,y,newval.rgb());
+                }
+            }
         }
     }
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    QTextStream cout(stdout);
+    cout << duration.count() << " "<<height<<"\n";
     ui->imageLabel->setPixmap(QPixmap::fromImage(newImage));
 }
 

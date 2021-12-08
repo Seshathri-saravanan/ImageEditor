@@ -2,7 +2,7 @@
 #define IMAGEEDITOR_H
 
 #include <QMainWindow>
-
+#include <QRubberBand>
 QT_BEGIN_NAMESPACE
 namespace Ui { class ImageEditor; }
 QT_END_NAMESPACE
@@ -19,6 +19,8 @@ public:
     int height;
     int bpp;
     int brightness;
+    QRubberBand* rubberBand;
+    QPoint origin;
     ~ImageEditor();
 
 private slots:
@@ -28,6 +30,9 @@ private slots:
     void changeContrast();
     void sharpenImage();
     void enhanceImage();
+    void startSelect(QMouseEvent* event);
+    void moveSelect(QMouseEvent* event);
+    void stopSelect(QMouseEvent* event);
 
 private:
     Ui::ImageEditor *ui;
