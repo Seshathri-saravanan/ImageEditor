@@ -5,7 +5,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QGraphicsScene>
-#include <omp.h>
+#include </usr/local/opt/libomp/include/omp.h>
 #include <QGraphicsView>
 #include <QGraphicsPixmapItem>
 #include "clickablelabel.h"
@@ -15,9 +15,9 @@ ImageEditor::ImageEditor(QWidget *parent)
     , ui(new Ui::ImageEditor)
 {
     QTextStream cout(stdout);
-    //omp_set_num_threads(6);
-    //#pragma omp parallel
-    //{
+   // omp_set_num_threads(6);
+   // #pragma omp parallel
+   // {
     //    cout<<"openmp parallel "<<omp_get_thread_num()<<"\n";
     //}
     ui->setupUi(this);
