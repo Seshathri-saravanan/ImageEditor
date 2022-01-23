@@ -6,3 +6,4 @@
 - Brightness adjustment
 - Constrast adjustment
 - Color enhancement
+- Sharpening
