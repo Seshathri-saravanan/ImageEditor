@@ -5,7 +5,6 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QGraphicsScene>
-#include </usr/local/opt/libomp/include/omp.h>
 #include <QGraphicsView>
 #include <QGraphicsPixmapItem>
 #include "clickablelabel.h"

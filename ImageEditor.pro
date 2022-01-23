@@ -1,9 +1,9 @@
 QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
-TARGET = OpenMP
-QMAKE_LFLAGS += -openmp
-QMAKE_CXXFLAGS+= -openmp
+#TARGET = OpenMP
+#QMAKE_LFLAGS += -openmp
+#QMAKE_CXXFLAGS+= -openmp
 
 
 SOURCES += \
